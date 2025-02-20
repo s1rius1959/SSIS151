@@ -1,0 +1,92 @@
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtWidgets import QMainWindow
+
+class Ui_MainWindow(object):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(800, 600)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        
+        self.tableWidget = QtWidgets.QTableWidget(self.centralwidget)
+        self.tableWidget.setGeometry(QtCore.QRect(20, 20, 760, 400))
+        self.tableWidget.setObjectName("tableWidget")
+        self.tableWidget.setColumnCount(6)
+        self.tableWidget.setRowCount(0)
+        
+        self.studentIDInput = QtWidgets.QLineEdit(self.centralwidget)
+        self.studentIDInput.setGeometry(QtCore.QRect(20, 440, 113, 20))
+        self.studentIDInput.setObjectName("studentIDInput")
+        
+        self.studentFnameInput = QtWidgets.QLineEdit(self.centralwidget)
+        self.studentFnameInput.setGeometry(QtCore.QRect(150, 440, 113, 20))
+        self.studentFnameInput.setObjectName("studentFnameInput")
+        
+        self.studentLnameInput = QtWidgets.QLineEdit(self.centralwidget)
+        self.studentLnameInput.setGeometry(QtCore.QRect(280, 440, 113, 20))
+        self.studentLnameInput.setObjectName("studentLnameInput")
+        
+        self.studentYrlvlInput = QtWidgets.QLineEdit(self.centralwidget)
+        self.studentYrlvlInput.setGeometry(QtCore.QRect(410, 440, 113, 20))
+        self.studentYrlvlInput.setObjectName("studentYrlvlInput")
+        
+        self.studentGenderInput = QtWidgets.QLineEdit(self.centralwidget)
+        self.studentGenderInput.setGeometry(QtCore.QRect(540, 440, 113, 20))
+        self.studentGenderInput.setObjectName("studentGenderInput")
+        
+        self.studentPcodeInput = QtWidgets.QLineEdit(self.centralwidget)
+        self.studentPcodeInput.setGeometry(QtCore.QRect(670, 440, 113, 20))
+        self.studentPcodeInput.setObjectName("studentPcodeInput")
+        
+        self.ADD = QtWidgets.QPushButton(self.centralwidget)
+        self.ADD.setGeometry(QtCore.QRect(20, 480, 75, 23))
+        self.ADD.setObjectName("ADD")
+        
+        MainWindow.setCentralWidget(self.centralwidget)
+        
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.ADD.setText(_translate("MainWindow", "Add Student"))
+        self.cccode.setText(_translate("MainWindow", "Code"))
+        self.proname.setText(_translate("MainWindow", "Program Name"))
+        self.ccccode.setText(_translate("MainWindow", "College Code"))
+        self.ccex.setPlaceholderText(_translate("MainWindow", "ex. BSCS"))
+        self.programn.setPlaceholderText(_translate("MainWindow", "ex. Bachelor of Science in Computer Science "))
+        self.ADD_2.setText(_translate("MainWindow", "Add College"))
+        self.ADD_3.setText(_translate("MainWindow", "Add Program"))
+
+class MyWindow(QMainWindow):
+    def __init__(self):
+        super(MyWindow, self).__init__()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.ui.ADD.clicked.connect(self.add_student)
+
+    def add_student(self):
+        student_id = self.ui.studentIDInput.text()
+        student_fname = self.ui.studentFnameInput.text()
+        student_lname = self.ui.studentLnameInput.text()
+        student_ylvl = self.ui.studentYrlvlInput.text()
+        student_gender = self.ui.studentGenderInput.text()
+        student_pcode = self.ui.studentPcodeInput.text()
+
+        row_position = self.ui.tableWidget.rowCount()
+        self.ui.tableWidget.insertRow(row_position)
+
+        self.ui.tableWidget.setItem(row_position, 0, QtWidgets.QTableWidgetItem(student_id))
+        self.ui.tableWidget.setItem(row_position, 1, QtWidgets.QTableWidgetItem(student_fname))
+        self.ui.tableWidget.setItem(row_position, 2, QtWidgets.QTableWidgetItem(student_lname))
+        self.ui.tableWidget.setItem(row_position, 3, QtWidgets.QTableWidgetItem(student_ylvl))
+        self.ui.tableWidget.setItem(row_position, 4, QtWidgets.QTableWidgetItem(student_gender))
+        self.ui.tableWidget.setItem(row_position, 5, QtWidgets.QTableWidgetItem(student_pcode))
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = MyWindow()
+    MainWindow.show()
+    sys.exit(app.exec_())
