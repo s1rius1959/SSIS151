@@ -5,15 +5,14 @@ import csv
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem
 from SSISFINAL import Ui_MainWindow 
 
+# Get the directory where the script is running
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Directory for CSV Files
-CSV_FILES = "E:\\COLLEGE DOCUMENTS\\SSIS\\CSV FILES"
-os.makedirs(CSV_FILES, exist_ok=True)
+# Define CSV file paths inside the current script directory
+StudentCSV = os.path.join(BASE_DIR, "students.csv")
+CollegeCSV = os.path.join(BASE_DIR, "colleges.csv")
+ProgramCSV = os.path.join(BASE_DIR, "programs.csv")
 
-#CSV Files
-CSV = os.path.join(CSV_FILES, "students.csv")
-COLLEGE_CSV = os.path.join(CSV_FILES, "colleges.csv")
-PROGRAM_CSV = os.path.join(CSV_FILES, "programs.csv")
 
 
 class StudentSystem(QMainWindow):
@@ -23,44 +22,45 @@ class StudentSystem(QMainWindow):
         self.ui.setupUi(self)
         self.setWindowTitle("Information System")
         #self.setWindowIcon
+    
+     
 
-
-        # Initialize program codes set
-        self.program_codes = set()
-        self.college_codes = set()
-        self.programcollege_map = {}
+        # Initialize Combo Boxes For Program and College Code
+        self.Program_Code = set()
+        self.College_Code = set()
+        self.ProgramCollegeMap = {}
 
         # Add Buttons
-        self.ui.AddSt.clicked.connect(self.add_student)
-        self.ui.AddCo.clicked.connect(self.add_college)
-        self.ui.AddProg.clicked.connect(self.add_program)
-        self.ui.EditSt.clicked.connect(self.edit_student)
-        self.ui.EditSt_2.clicked.connect(self.edit_college)
-        self.ui.EditSt_3.clicked.connect(self.edit_program)
-        self.ui.SEARCHbutton.clicked.connect(self.search_student)
-        self.ui.Searchbutton.clicked.connect(self.search_college)
-        self.ui.Searchbutton_2.clicked.connect(self.search_program)
+        self.ui.AddSt.clicked.connect(self.AddStudent)
+        self.ui.AddCo.clicked.connect(self.AddCollege)
+        self.ui.AddProg.clicked.connect(self.AddProgram)
+        self.ui.EditSt.clicked.connect(self.EditStudent)
+        self.ui.EditSt_2.clicked.connect(self.EditCollege)
+        self.ui.EditSt_3.clicked.connect(self.EditProgram)
+        self.ui.SEARCHbutton.clicked.connect(self.SearchStudent)
+        self.ui.Searchbutton.clicked.connect(self.SearchCollege)
+        self.ui.Searchbutton_2.clicked.connect(self.SearchProgram)
         
         # Load 
-        self.load_students()
-        self.load_colleges()
-        self.load_programs()
-        self.populate_combo_boxes()
+        self.LoadStudent()
+        self.LoadCollege()
+        self.LoadProgram()
+        self.combo_boxes()
 
         # Deleting
-        self.ui.DeleteSt.clicked.connect(self.delete_student)
-        self.ui.DeleteSt_2.clicked.connect(self.delete_college)
-        self.ui.DeleteSt_3.clicked.connect(self.delete_program)
+        self.ui.DeleteSt.clicked.connect(self.DeleteStudent)
+        self.ui.DeleteSt_2.clicked.connect(self.DeleteCollege)
+        self.ui.DeleteSt_3.clicked.connect(self.DeleteProgram)
 
         self.ui.tabWidget.setCurrentIndex(0)
 
         # Sorting
-        self.ui.Sortbybox.currentIndexChanged.connect(self.sort_students)
-        self.ui.Sortbox.currentIndexChanged.connect(self.sort_college)
-        self.ui.Sortbybox_2.currentIndexChanged.connect(self.sort_program)
+        self.ui.Sortbybox.currentIndexChanged.connect(self.SortStudents)
+        self.ui.Sortbox.currentIndexChanged.connect(self.SortCollege)
+        self.ui.Sortbybox_2.currentIndexChanged.connect(self.SortProgram)
 
        #Combo Boxes 
-    def populate_combo_boxes(self):
+    def combo_boxes(self):
         self.ui.Yrlvlbox.clear()
         self.ui.genderbox.clear()
         self.ui.Yrlvlbox.addItems(["Please Select", "1st", "2nd", "3rd", "4th"])
@@ -70,39 +70,19 @@ class StudentSystem(QMainWindow):
 
         self.ui.prcComboBox.clear()
         self.ui.prcComboBox.addItem("Please Select")
-        self.ui.prcComboBox.addItems(self.program_codes)
+        self.ui.prcComboBox.addItems(self.Program_Code)
         self.ui.prcComboBox.setCurrentIndex(0)
 
         self.ui.ccComboBox.clear()
         self.ui.ccComboBox.addItem("Please Select")
-        self.ui.ccComboBox.addItems(self.college_codes)
+        self.ui.ccComboBox.addItems(self.College_Code)
         self.ui.ccComboBox.setCurrentIndex(0)
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
     #STUDENTS
-    def load_students(self):
-        try:
-            with open(CSV, "r", newline="") as file:
-                reader = csv.reader(file)
-                self.ui.StudentTable.setRowCount(0)
-                for row_index, row_data in enumerate(reader):
-                    self.ui.StudentTable.insertRow(row_index)
-                    for col_index, data in enumerate(row_data):
-                        self.ui.StudentTable.setItem(row_index, col_index, QTableWidgetItem(data))
-        except FileNotFoundError:
-            with open(CSV, "w", newline="") as file:
-                pass  
 
-    def student_exists(self, student_id):
-        with open(CSV, "r", newline="") as file:
-            reader = csv.reader(file)
-            for row in reader:
-                if row and row[0] == student_id:    
-                    return True
-        return False
-
-    def add_student(self):
-        #For adding student
+    def AddStudent(self):
+        #Initializing
         id = self.ui.IDnoBox.text().strip()
         fname = self.ui.FristNbox.text().strip()
         lastname = self.ui.LastNbox.text().strip()
@@ -110,16 +90,16 @@ class StudentSystem(QMainWindow):
         gender = self.ui.genderbox.currentText().strip()
         code = self.ui.prcComboBox.currentText().strip()
 
-        # Validators
+        # Validating Add Student Inputs
         if not id or not fname or not lastname or not code or yearlevel == "Please Select" or gender == "Please Select":
             QMessageBox.warning(self, "Input Error", "All fields must be filled.")
             return
 
-        if not self.student_idformat(id):
+        if not self.studentidformat(id):
             QMessageBox.warning(self, "Input Error", "Invalid Student ID format. Must be in YYYY - NNNN format.")
             return
         
-        if not self.student_nameformat(fname) or not self.student_nameformat(lastname):
+        if not self.studentnameformat(fname) or not self.studentnameformat(lastname):
             QMessageBox.warning(self, "Input Error", "Names must contain only letters and spaces!")
             return
         
@@ -127,35 +107,59 @@ class StudentSystem(QMainWindow):
             QMessageBox.warning(self, "Input Error", "Invalid Program Code! Only letters and spaces are allowed.")
             return
         
-        if code not in self.program_codes:
+        if code not in self.Program_Code:
             QMessageBox.warning(self, "Input Error", "Invalid Program Code!")
             return
 
 
-        if self.student_exists(id):
+        if self.studentexists(id):
             QMessageBox.warning(self, "Duplicate Entry", "Student ID already exists.")
             return
         
-        college_code = self.programcollege_map.get(code, "")
-        if college_code not in self.college_codes:
+        college_code = self.ProgramCollegeMap.get(code, "")
+        if college_code not in self.College_Code:
             QMessageBox.warning(self, "Input Error", "The College associated with this Program Code does not exist.")
             return
 
-        if code not in self.program_codes:
+        if code not in self.Program_Code:
             QMessageBox.warning(self, "Input Error", "Invalid Program Code! Please add the program first.")
             return
         
         # Saving
-        with open(CSV, "a", newline="") as file:
+        
+        with open(StudentCSV, "a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([id, fname, lastname, yearlevel, gender, code])
-
-        # Refresh the table and clear inputs
-        self.load_students()
+        self.LoadStudent()
         QMessageBox.information(self, "Success", "Student added successfully.")
-        self.clear_inputs()
+        self.ClearStudentInputs()
+    
+    def LoadStudent(self):
+        if not os.path.exists(StudentCSV):
+            with open(StudentCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(["ID", "First Name", "Last Name", "Year Level", "Gender", "Program Code"]) 
 
-    def clear_inputs(self):
+        with open(StudentCSV, "r", newline="") as file:
+            reader = csv.reader(file)
+            self.ui.StudentTable.setRowCount(0)
+            next(reader, None)  
+            for row_index, row_data in enumerate(reader):
+                self.ui.StudentTable.insertRow(row_index)
+                for col_index, data in enumerate(row_data):
+                    self.ui.StudentTable.setItem(row_index, col_index, QTableWidgetItem(data))
+    
+    #Check if Student Exists
+    def studentexists(self, student_id):
+        with open(StudentCSV, "r", newline="") as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if row and row[0] == student_id:    
+                    return True
+        return False
+    
+    # Clearing Add Student Inputs
+    def ClearStudentInputs(self):
         
         self.ui.IDnoBox.clear()
         self.ui.FristNbox.clear()
@@ -163,264 +167,85 @@ class StudentSystem(QMainWindow):
         self.ui.prcComboBox.setCurrentIndex(0)
         self.ui.Yrlvlbox.setCurrentIndex(0)  
         self.ui.genderbox.setCurrentIndex(0)  
-    
-    def student_idformat(self, student_id, edit_state=False):
-        if not edit_state:
-            valid_id_number = re.match(r'^[0-9]{4}-[0-9]{4}$', student_id)
-        else:
-            valid_id_number = re.match(r'^[0-9]{4}-[0-9]{4}$|^$', student_id)
-        return True if valid_id_number else False
-    
-    def student_nameformat(self, name):
+    # ID Format
+    def studentidformat(self, student_id):
+            valid_id_number = re.match(r'^\d{4}-\d{4}$', student_id)
+            return bool(valid_id_number)
+    # Name Format
+    def studentnameformat(self, name):
         valid_name = re.match(r'^[a-zA-Z]+(?:\s[a-zA-Z]+)*$', name)
         return True if valid_name else False 
-
-    
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    #COLLEGE  
-    def load_colleges(self):
+    # Deleting Student
+    def DeleteStudent(self):
         try:
-            with open(COLLEGE_CSV, mode="r") as file:
-                reader = csv.reader(file)
-                self.ui.COLLEGETABLE.setRowCount(0)
-                self.college_codes.clear()
-                for row in reader:
-                    row_position = self.ui.COLLEGETABLE.rowCount()
-                    self.ui.COLLEGETABLE.insertRow(row_position)
-                    for col, data in enumerate(row):
-                        self.ui.COLLEGETABLE.setItem(row_position, col, QTableWidgetItem(data))
-                    if row:
-                        self.college_codes.add(row[0])
-            self.populate_combo_boxes()  # Update combo box
-        except FileNotFoundError:
-            open(COLLEGE_CSV, "w").close()
-
-   
-    def add_college(self):
-        collegecode = self.ui.AddCCodeBox.text().strip()
-        collegename = self.ui.CollegeNbox.text().strip()
-
-        if not collegecode or not collegename:
-            QMessageBox.warning(self, "Input Error", "All fields are required!")
-            return
-        
-        
-        with open(COLLEGE_CSV, "a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow([collegecode, collegename])
-
-        QMessageBox.information(self, "Success", "College added successfully!")
-        self.load_colleges()  
-        self.clear_course_inputs()
-        self.populate_combo_boxes()
-
-    def clear_course_inputs(self):
-        self.ui.AddCCodeBox.clear()
-        self.ui.CollegeNbox.clear()
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
-    #PROGRAMS
-    def load_programs(self):
-        try:
-            with open(PROGRAM_CSV, mode="r") as file:
-                reader = csv.reader(file)
-                self.ui.COLLEGETABLE_2.setRowCount(0)
-                self.program_codes.clear()
-                for row in reader:
-                    row_position = self.ui.COLLEGETABLE_2.rowCount()
-                    self.ui.COLLEGETABLE_2.insertRow(row_position)
-                    for col, data in enumerate(row):
-                        self.ui.COLLEGETABLE_2.setItem(row_position, col, QTableWidgetItem(data))
-                    if row and len(row) >= 2:
-                        self.program_codes.add(row[0])  
-                        self.programcollege_map[row[0]] = row[2]
-            self.populate_combo_boxes()  # Update combo box
-        except FileNotFoundError:
-            open(PROGRAM_CSV, "w").close()
-
-    
-    def add_program(self):
-        program_code = self.ui.PrCodeBox.text().strip()
-        program_name = self.ui.ProgNbox.text().strip()
-        college_code = self.ui.ccComboBox.currentText().strip()
-
-        if not program_code or not program_name or college_code == "Please Select":
-            QMessageBox.warning(self, "Input Error", "All fields are required!")
-            return
-        
-        with open(PROGRAM_CSV, "a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow([program_code, program_name, college_code])
-
-        QMessageBox.information(self, "Success", "Program added successfully!")
-        self.load_programs()
-        self.clear_program_inputs()
-        self.populate_combo_boxes()
-
-    def clear_program_inputs(self):
-        self.ui.PrCodeBox.clear()
-        self.ui.ProgNbox.clear()
-        self.ui.ccComboBox.clear()
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # Delete Student 
-    def delete_student(self):
-        selected_row = self.ui.StudentTable.currentRow()
-        if selected_row >= 0:
+            selected_row = self.ui.StudentTable.currentRow()
+            if selected_row < 0:
+                QMessageBox.warning(self, "Input Error", "Please select a Student to delete.")
+                return
             self.ui.StudentTable.removeRow(selected_row)
-            with open(CSV, "r") as file:
-                rows= list(csv.reader(file))
-            with open(CSV, "w", newline="") as file:        
+            
+            with open(StudentCSV, "r", newline="") as file:
+                rows = list(csv.reader(file))
+            with open(StudentCSV, "w", newline="") as file:
                 writer = csv.writer(file)
                 for i, row in enumerate(rows):
-                    if i != selected_row:
+                    if i != selected_row + 1:
                         writer.writerow(row)
+            
             QMessageBox.information(self, "Success", "Student deleted successfully!")
-            self.load_students()      
+            self.LoadStudent()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while deleting the student: {e}")
     
-    # Delete College
-    def delete_college(self):
-        selected_row = self.ui.COLLEGETABLE.currentRow()
-        if selected_row >= 0:
-            college_code = self.ui.COLLEGETABLE.item(selected_row, 0).text()
-
-        # Remove College from Table
-        self.ui.COLLEGETABLE.removeRow(selected_row)
-    
-        # Remove College from CSV
-        with open(COLLEGE_CSV, "r") as file:
-            rows = list(csv.reader(file))
-        with open(COLLEGE_CSV, "w", newline="") as file:
-            writer = csv.writer(file)
-            for row in rows:
-                if row[0] != college_code:
-                    writer.writerow(row)
-    
-        # Remove Programs that are connected to College
-        programs_to_remove = set()
-        with open(PROGRAM_CSV, "r") as file:
-            rows = list(csv.reader(file))
-        with open(PROGRAM_CSV, "w", newline="") as file:
-            writer = csv.writer(file)
-            for row in rows:
-                if row[2] != college_code:
-                    writer.writerow(row)
-                else:
-                    programs_to_remove.add(row[0])  # Store deleted program codes
-
-        # Unenroll Students who were in Deleted Programs
-        with open(CSV, "r") as file:
-            rows = list(csv.reader(file))
-        with open(CSV, "w", newline="") as file:
-            writer = csv.writer(file)
-            for row in rows:
-                if row[5] in programs_to_remove:  
-                    row[5] = "Unenrolled"  # Change program column to "Unenrolled"
-                writer.writerow(row)  # Write back all rows correctly
-
-        # Show confirmation message
-        QMessageBox.information(self, "Success", "College Deleted Successfully")
-        
-        # Refresh UI
-        self.load_colleges()
-        self.load_programs()
-        self.load_students()
-        self.populate_combo_boxes()  # Refresh dropdowns
-
-
-
-
-    # Delete Program
-    def delete_program(self):
-        selected_row = self.ui.COLLEGETABLE_2.currentRow()
-        if selected_row >= 0:
-            program_code = self.ui.COLLEGETABLE_2.item(selected_row, 0).text()
-
-        # Remove Program from Table
-        self.ui.COLLEGETABLE_2.removeRow(selected_row)
-
-        # Remove Program from CSV
-        with open(PROGRAM_CSV, "r") as file:
-            rows = list(csv.reader(file))
-        with open(PROGRAM_CSV, "w", newline="") as file:
-            writer = csv.writer(file)
-            for row in rows:
-                if row[0] != program_code:
-                    writer.writerow(row)
-
-        # 
-        with open(CSV, "r") as file:
-            rows = list(csv.reader(file))
-        with open(CSV, "w", newline="") as file:
-            writer = csv.writer(file)
-            for row in rows:
-                if row[5] == program_code:  
-                    row[5] = "Unenrolled" 
-                writer.writerow(row)  
-
-        QMessageBox.information(self, "Success", "Program Deleted Successfully")
-
-        self.load_programs()
-        self.load_students()
-        self.populate_combo_boxes()
 
     # Edit Student
-    def edit_student(self):
-        selected_row = self.ui.StudentTable.currentRow()
-        if selected_row >= 0:
-            self.ui.IDnoBox.setText(self.ui.StudentTable.item(selected_row, 0).text())
-            self.ui.FristNbox.setText(self.ui.StudentTable.item(selected_row, 1).text())
-            self.ui.LastNbox.setText(self.ui.StudentTable.item(selected_row, 2).text())
-            self.ui.Yrlvlbox.setCurrentText(self.ui.StudentTable.item(selected_row, 3).text())
-            self.ui.genderbox.setCurrentText(self.ui.StudentTable.item(selected_row, 4).text())
-            self.ui.prcComboBox.setCurrentText(self.ui.StudentTable.item(selected_row, 5).text())
-            self.ui.StudentTable.removeRow(selected_row)
-            with open(CSV, "r") as file:
-                rows = list(csv.reader(file))
-            with open(CSV, "w", newline="") as file:
-                writer = csv.writer(file)
-                for i, row in enumerate(rows):
-                    if i != selected_row:
-                        writer.writerow(row)
-            self.load_students()
-
-    # Edit College
-    def edit_college(self):
-        selected_row = self.ui.COLLEGETABLE.currentRow()
-        if selected_row >= 0:
-            self.ui.AddCCodeBox.setText(self.ui.COLLEGETABLE.item(selected_row, 0).text())
-            self.ui.CollegeNbox.setText(self.ui.COLLEGETABLE.item(selected_row, 1).text())
-            self.ui.COLLEGETABLE.removeRow(selected_row)
-            with open(COLLEGE_CSV, "r") as file:
-                rows = list(csv.reader(file))
-            with open(COLLEGE_CSV, "w", newline="") as file:
-                writer = csv.writer(file)
-                for i, row in enumerate(rows):
-                    if i != selected_row:
-                        writer.writerow(row)
-            self.load_colleges()
-
-    #Edit Program
-    def edit_program(self):
-        selected_row = self.ui.COLLEGETABLE_2.currentRow()
-        if selected_row >= 0:
-            self.ui.PrCodeBox.setText(self.ui.COLLEGETABLE_2.item(selected_row, 0).text())
-            self.ui.ProgNbox.setText(self.ui.COLLEGETABLE_2.item(selected_row, 1).text())
-            self.ui.ccComboBox.setCurrentText(self.ui.COLLEGETABLE_2.item(selected_row, 2).text())
-            self.ui.COLLEGETABLE_2.removeRow(selected_row)
-            with open(PROGRAM_CSV, "r") as file:
-                rows = list(csv.reader(file))
-            with open(PROGRAM_CSV, "w", newline="") as file:
-                writer = csv.writer(file)
-                for i, row in enumerate(rows):
-                    if i != selected_row:
-                        writer.writerow(row)
-            self.load_programs()
+    def EditStudent(self):
+        selectedrow = self.ui.StudentTable.currentRow()
     
+        if selectedrow < 0:
+            QMessageBox.warning(self, "Selection Error", "Please select a student to edit.")
+            return
+
+        # original student data
+        student_id = self.ui.StudentTable.item(selectedrow, 0).text()
+        fname = self.ui.StudentTable.item(selectedrow, 1).text()
+        lastname = self.ui.StudentTable.item(selectedrow, 2).text()
+        yearlevel = self.ui.StudentTable.item(selectedrow, 3).text()
+        gender = self.ui.StudentTable.item(selectedrow, 4).text()
+        program_code = self.ui.StudentTable.item(selectedrow, 5).text()
+
+        # For Inputs
+        self.ui.IDnoBox.setText(student_id)
+        self.ui.FristNbox.setText(fname)
+        self.ui.LastNbox.setText(lastname)
+        self.ui.Yrlvlbox.setCurrentText(yearlevel)
+        self.ui.genderbox.setCurrentText(gender)
+        self.ui.prcComboBox.setCurrentText(program_code)
+
+        # Remove the selected student from the CSV
+        try:
+            with open(StudentCSV, "r", newline="") as file:
+                Sedit = list(csv.reader(file))
+
+            with open(StudentCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                for row in Sedit:
+                    if row and row[0] != student_id:  
+                        writer.writerow(row)
+
+            # Remove row from UI table
+            self.ui.StudentTable.removeRow(selectedrow)
+
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while editing the student: {e}")
+
     # Search Student
-    def search_student(self):
+    def SearchStudent(self):
         search_text = self.ui.Searchbybox.text().strip().lower()
         
         if not search_text:
-            QMessageBox.warning(self, "Input Error", "Please enter a Student to search.")
+            self.LoadStudent()
             return
         if not search_text.isalnum():
             QMessageBox.warning(self, "Input Error", "Invalid Student ID!")
@@ -429,7 +254,7 @@ class StudentSystem(QMainWindow):
             QMessageBox.warning(self, "Input Error", "Invalid Student Name!")
             return
         
-        with open(CSV, "r") as file:
+        with open(StudentCSV, "r") as file:
             reader = csv.reader(file)
             self.ui.StudentTable.setRowCount(0)
             for row_data in reader:
@@ -440,18 +265,241 @@ class StudentSystem(QMainWindow):
                         self.ui.StudentTable.setItem(row_index, col_index, QTableWidgetItem(data))
         QMessageBox.information(self, "Search Results", "Search completed.")
 
+    # Sorting Students
+    def SortStudents(self):
+        indexcolumn = self.ui.Sortbybox.currentIndex()  
+
+        # If "SELECT" is chosen, it reverts back to its original order(The order when it was added)
+        if indexcolumn == 0:  
+            self.LoadStudent()  
+            return
+
+        StudentSort = {
+            1: 0,  # ID#
+            2: 1,  # First Name
+            3: 2,  # Last Name
+            4: 3,  # Year Level
+            5: 4,  # Gender
+            6: 5   # Program Code
+        }
+
+        if indexcolumn not in StudentSort:
+            QMessageBox.warning(self, "Sort Error", "Please select a valid sorting option.")
+            return
+
+        indexcolumn = StudentSort[indexcolumn]  # Get actual column index
+
+        
+        with open(StudentCSV, "r", newline="") as file:
+            Ssort = csv.reader(file)
+            rows = list(Ssort)
+
+        if len(rows) <= 1:  # IF only header is available
+            QMessageBox.warning(self, "Sort Error", "No data available for sorting.")
+            return
+
+        header, *inputs = rows  # Separate header from data
+
+       
+        inputs.sort(key=lambda row: row[indexcolumn].lower() if len(row) > indexcolumn else "")
+
+        
+        self.ui.StudentTable.setRowCount(0)
+        for row_data in inputs:
+            row_index = self.ui.StudentTable.rowCount()
+            self.ui.StudentTable.insertRow(row_index)
+            for col_index, cell_data in enumerate(row_data):
+                self.ui.StudentTable.setItem(row_index, col_index, QTableWidgetItem(cell_data))
+    
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    #COLLEGE  
+    def AddCollege(self):
+        collegecode = self.ui.AddCCodeBox.text().strip()
+        collegename = self.ui.CollegeNbox.text().strip()
+
+        # Validating Add College Inputs
+        if not collegecode or not collegename:
+            QMessageBox.warning(self, "Input Error", "All fields are required!")
+            return
+        if not all(c.isalpha() for c in collegecode): 
+            QMessageBox.warning(self, "Input Error", "Invalid College Code! Only letters are allowed.")
+            return
+        if not all(c.isalpha() or c.isspace() for c in collegename): 
+            QMessageBox.warning(self, "Input Error", "Invalid College Name! Only letters and spaces are allowed.")
+            return
+        
+        
+        with open(CollegeCSV, "a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow([collegecode, collegename])
+
+        self.LoadCollege() 
+        QMessageBox.information(self, "Success", "College added")
+ 
+        self.ClearCollegeInputs()
+        self.combo_boxes()
+
+    # Clearing Add College Inputs
+    def ClearCollegeInputs(self):
+        self.ui.AddCCodeBox.clear()
+        self.ui.CollegeNbox.clear()
+
+    def LoadCollege(self):
+        
+        if not os.path.exists(CollegeCSV):
+            with open(CollegeCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(["College Code", "College Name"]) 
+
+        with open(CollegeCSV, mode="r", newline="") as file:
+            reader = csv.reader(file)
+            self.ui.COLLEGETABLE.setRowCount(0)
+            self.College_Code.clear()
+            next(reader, None)  
+            for row in reader:
+                row_position = self.ui.COLLEGETABLE.rowCount()
+                self.ui.COLLEGETABLE.insertRow(row_position)
+                for col, data in enumerate(row):
+                    self.ui.COLLEGETABLE.setItem(row_position, col, QTableWidgetItem(data))
+                if row:
+                    self.College_Code.add(row[0])
+            self.combo_boxes()
+    
+    
+     # Delete College
+    def DeleteCollege(self):
+        college_code = None
+        selected_row = self.ui.COLLEGETABLE.currentRow()
+        if selected_row >= 0:
+            college_code = self.ui.COLLEGETABLE.item(selected_row, 0).text()
+        
+        if college_code is None:
+            QMessageBox.warning(self, "Input Error", "Please select a College to delete.")
+            return
+
+        # Remove College from Table
+        self.ui.COLLEGETABLE.removeRow(selected_row)
+    
+        # Remove College from CSV
+        try:
+            with open(CollegeCSV, "r", newline="") as file:
+                rows = list(csv.reader(file))
+            with open(CollegeCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                for i, row in enumerate(rows):
+                    if i != selected_row + 1:
+                        writer.writerow(row)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", "An error occurred while deleting the College.")
+            return
+    
+        # Remove Programs that are connected to College
+        programs_to_remove = set()
+        try:
+            with open(ProgramCSV, "r") as file:
+                rows = list(csv.reader(file))
+            with open(ProgramCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                for row in rows:
+                    if row[2] != college_code:
+                        writer.writerow(row)
+                    else:
+                        programs_to_remove.add(row[0]) 
+        except Exception as e:
+            QMessageBox.warning(self, "Error", "An error occurred while deleting the College.", {e})
+            return
+
+        # NULL the Program code in STUDENTS CSV
+        try:
+            with open(StudentCSV, "r") as file:
+                rows = list(csv.reader(file))
+            with open(StudentCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                for row in rows:
+                    if row[5] in programs_to_remove:  
+                        row[5] = "NULL"  
+                    writer.writerow(row) 
+        except Exception as e:
+            QMessageBox.warning(self, "Error", "An error occurred while deleting the College.", {e})
+
+    
+        QMessageBox.information(self, "Success", "College Deleted Successfully")
+        
+        # Refresh UI
+        self.LoadCollege()
+        self.LoadProgram()
+        self.LoadStudent()
+        self.combo_boxes()
+
+    # Edit College
+    def EditCollege(self):
+        selected_row = self.ui.COLLEGETABLE.currentRow()
+
+        if selected_row < 0:
+            QMessageBox.warning(self, "Selection Error", "Please select a College to edit.")
+            return
+
+        # original college data
+        college_code = self.ui.COLLEGETABLE.item(selected_row, 0).text()
+        college_name = self.ui.COLLEGETABLE.item(selected_row, 1).text()
+
+        # For Inputs
+        self.ui.AddCCodeBox.setText(college_code)
+        self.ui.CollegeNbox.setText(college_name)
+
+        # For Header Glitch and Removing the Selected College
+        try:
+        
+            with open(CollegeCSV, "r", newline="") as file:
+                reader = csv.reader(file)
+                rows = list(reader)
+
+            # For Header Glitch and Removing the Selected College
+            if rows and rows[0] == ["College Code", "College Name"]:
+                header = rows[0]  
+                data_rows = rows[1:]  
+            else:
+                header = ["College Code", "College Name"]
+                data_rows = rows
+
+            # For Removing
+            new_rows = [row for row in data_rows if row and row[0] != college_code]
+
+            # keep the header only if there are remaining rows
+            with open(CollegeCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                if new_rows:  
+                    writer.writerow(header)  
+                    writer.writerows(new_rows)
+        
+            # Remove a row from the Table
+            self.ui.COLLEGETABLE.removeRow(selected_row)
+
+            # For updating
+            self.LoadCollege()
+
+            QMessageBox.information(self, "Editing", "College removed. You can now update its information and add it again.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while editing the college: {e}")
+
+
+
+
+
     # Search College
-    def search_college(self):
+    def SearchCollege(self):
         search_c = self.ui.Searchbox.text().strip().lower()
         
         if not search_c:
-            QMessageBox.warning(self, "Input Error", "Please enter a College to search.")
+            self.LoadCollege()
             return
         if not search_c.isalpha():
-            QMessageBox.warning(self, "Input Error", "Invalid College Code!")
+            QMessageBox.warning(self, "Input Error", "Invalid College Code or College Name!")
             return
         
-        with open(COLLEGE_CSV, "r") as file:
+        
+        with open(CollegeCSV, "r") as file:
             reader = csv.reader(file)
             self.ui.COLLEGETABLE.setRowCount(0)
             for row_data in reader:
@@ -462,18 +510,220 @@ class StudentSystem(QMainWindow):
                         self.ui.COLLEGETABLE.setItem(row_index, col_index, QTableWidgetItem(data))
         QMessageBox.information(self, "Search Results", "Search completed.")
 
+        # Sorting College
+    def SortCollege(self):
+        try:
+            indexcolumn = self.ui.Sortbox.currentIndex()
+
+            if indexcolumn == 0:  # If "Select" is chosen, reload original order
+                self.LoadCollege()  # **Reload table from CSV**
+                return
+
+            CollegeSort = {
+            1: 0,  # College Code
+            2: 1   # College Name
+            }
+
+            if indexcolumn not in CollegeSort:
+                QMessageBox.warning(self, "Sort Error", "Please select a valid sorting option.")
+                return
+
+            indexcolumn = CollegeSort[indexcolumn]  # Get actual column index
+
+             
+            with open(CollegeCSV, "r", newline="") as file:
+                Csort = csv.reader(file)
+                rows = list(Csort)
+
+            if len(rows) <= 1:  # IF only header is available
+                QMessageBox.warning(self, "Sort Error", "No data available for sorting.")
+                return
+
+            # Since my Table has a header, I separated it and my Table also has bugs so I used this method to sort
+            header, *inputs = rows  # I separate header from the inputs in the table
+
+            # Sort data based on the selected column
+            inputs.sort(key=lambda row: row[indexcolumn].lower() if len(row) > indexcolumn else "")
+
+            
+            self.ui.COLLEGETABLE.setRowCount(0)
+            for row_data in inputs:
+                row_index = self.ui.COLLEGETABLE.rowCount()
+                self.ui.COLLEGETABLE.insertRow(row_index)
+                for col_index, cell_data in enumerate(row_data):
+                    self.ui.COLLEGETABLE.setItem(row_index, col_index, QTableWidgetItem(cell_data))
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while sorting the Colleges: {str(e)}")
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
+    #PROGRAMS
+    def AddProgram(self):
+        programcode = self.ui.PrCodeBox.text().strip()
+        programname = self.ui.ProgNbox.text().strip()
+        collegecode = self.ui.ccComboBox.currentText().strip()
+
+        # Validating Add Program Inputs
+        if not programcode or not programname or collegecode == "Please Select":
+            QMessageBox.warning(self, "Input Error", "All fields are required!")
+            return
+        if not all(c.isalpha() or c.isspace() for c in programcode): 
+            QMessageBox.warning(self, "Input Error", "Invalid Program Code! Only letters and spaces are allowed.")
+            return
+        if not all(c.isalpha() or c.isspace() for c in programname): 
+            QMessageBox.warning(self, "Input Error", "Invalid Program Name! Only letters and spaces are allowed.")
+            return
+        with open(ProgramCSV, "a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow([programcode, programname, collegecode])
+
+        QMessageBox.information(self, "Success", "Program added")
+        self.LoadProgram()
+        self.ClearProgramInputs()
+        self.combo_boxes()
+
+    def LoadProgram(self):
+    
+        if not os.path.exists(ProgramCSV):
+            with open(ProgramCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(["Program Code", "Program Name", "College Code"])  # Header row
+
+        with open(ProgramCSV, mode="r", newline="") as file:
+            reader = csv.reader(file)
+            self.ui.COLLEGETABLE_2.setRowCount(0)
+            self.Program_Code.clear()
+            next(reader, None)  
+            for row in reader:
+                row_position = self.ui.COLLEGETABLE_2.rowCount()
+                self.ui.COLLEGETABLE_2.insertRow(row_position)
+                for col, data in enumerate(row):
+                    self.ui.COLLEGETABLE_2.setItem(row_position, col, QTableWidgetItem(data))
+                if row and len(row) >= 2:
+                    self.Program_Code.add(row[0])  
+                    self.ProgramCollegeMap[row[0]] = row[2]
+            self.combo_boxes()
+
+
+    # Clear Add Program Inputs
+    def ClearProgramInputs(self):
+        self.ui.PrCodeBox.clear()
+        self.ui.ProgNbox.clear()
+        self.ui.ccComboBox.clear()
+    
+    # Delete Program
+    def DeleteProgram(self):
+        program_code = None
+        selected_row = self.ui.COLLEGETABLE_2.currentRow()
+        if selected_row >= 0:
+            program_code = self.ui.COLLEGETABLE_2.item(selected_row, 0).text()
+        
+        if program_code is None:  
+            QMessageBox.warning(self, "Input Error", "Please select a Program to delete.")
+            return
+
+        # Remove Program from Table
+        self.ui.COLLEGETABLE_2.removeRow(selected_row)
+
+        # Remove Program from CSV   
+        try:
+             with open(ProgramCSV, "r", newline="") as file:
+                rows = list(csv.reader(file))
+                with open(ProgramCSV, "w", newline="") as file:
+                    writer = csv.writer(file)
+                    for i, row in enumerate(rows):
+                        if i != selected_row + 1:
+                            writer.writerow(row)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", "An error occurred while deleting the Program.")
+            return
+
+        # Null the Program code in STUDENTS CSV (If you only delete the program)
+        try:
+            with open(StudentCSV, "r") as file:
+                rows = list(csv.reader(file))
+            with open(StudentCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                for row in rows:
+                    if row[5] == program_code:  
+                        row[5] = "NULL" 
+                    writer.writerow(row)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", "An error occurred while deleting the Program.")
+            return
+        QMessageBox.information(self, "Success", "Program Deleted Successfully")
+
+        self.LoadProgram()
+        self.LoadStudent()
+        self.combo_boxes()
+    
+    #Edit Program
+    def EditProgram(self):
+        selected_row = self.ui.COLLEGETABLE_2.currentRow()
+
+        if selected_row < 0:
+            QMessageBox.warning(self, "Selection Error", "Please select a Program to edit.")
+            return
+
+        # original program data
+        program_code = self.ui.COLLEGETABLE_2.item(selected_row, 0).text()
+        program_name = self.ui.COLLEGETABLE_2.item(selected_row, 1).text()
+        college_code = self.ui.COLLEGETABLE_2.item(selected_row, 2).text()
+
+        # For Inputs
+        self.ui.PrCodeBox.setText(program_code)
+        self.ui.ProgNbox.setText(program_name)
+        self.ui.ccComboBox.setCurrentText(college_code)
+
+        # For Header Glitch and Removing the Selected Program
+        try:
+          
+            with open(ProgramCSV, "r", newline="") as file:
+                reader = csv.reader(file)
+                rows = list(reader)
+
+            # Header Glitch
+            if rows and rows[0] == ["Program Code", "Program Name", "College Code"]:
+                header = rows[0]  
+                data_rows = rows[1:] 
+            else:
+                header = ["Program Code", "Program Name", "College Code"]
+                data_rows = rows
+
+            # For Removing
+            new_rows = [row for row in data_rows if row and row[0] != program_code]
+
+            # keep the header only if there are remaining rows
+            with open(ProgramCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                if new_rows:  
+                    writer.writerow(header)  
+                    writer.writerows(new_rows)
+        
+            # Remove a row from the Table
+            self.ui.COLLEGETABLE_2.removeRow(selected_row)
+
+            # For updating
+            self.LoadProgram()
+
+            QMessageBox.information(self, "Editing", "Program removed. You can now update its information and add it again.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while editing the program: {e}")
+    
     # Search Program
-    def search_program(self):
+    def SearchProgram(self):
         search_p = self.ui.Searchbybox_2.text().strip().lower()
         
         if not search_p:
-            QMessageBox.warning(self, "Input Error", "Please enter a Program to search.")
+            self.LoadProgram()
             return
         if not search_p.isalpha():
-            QMessageBox.warning(self, "Input Error", "Invalid Program Code!")
+            QMessageBox.warning(self, "Input Error", "Invalid Program Code or Program Name or College Code!")
             return
         
-        with open(PROGRAM_CSV, "r") as file:
+        with open(ProgramCSV, "r") as file:
             reader = csv.reader(file)
             self.ui.COLLEGETABLE_2.setRowCount(0)
             for row_data in reader:
@@ -484,116 +734,56 @@ class StudentSystem(QMainWindow):
                         self.ui.COLLEGETABLE_2.setItem(row_index, col_index, QTableWidgetItem(data))
         QMessageBox.information(self, "Search Results", "Search completed.")
     
-    # Sorting Students
-    def sort_students(self):
-        column_index = self.ui.Sortbybox.currentIndex()  
-
-        if column_index == 0: # When Select is pressed, it will revert back to its original order
-            self.load_students()
-            return
-
-    
-        sort_mapping = {
-            1: 0,  # ID#
-            2: 2,  # Last Name
-            3: 5   # Program Code
-        }
-
-        if column_index not in sort_mapping:
-            QMessageBox.warning(self, "Sort Error", "Please select a sorting option.")
-            return
-
-        column_index = sort_mapping[column_index]  # Get actual column index
-
-    
-        with open(CSV, "r", newline="") as file:
-            reader = list(csv.reader(file))  
-
-  
-        if column_index == 0: 
-            try:
-                reader.sort(key=lambda row: (int(row[0][:4]), int(row[0][5:]))) 
-            except ValueError:
-                QMessageBox.warning(self, "Sort Error", "Invalid ID format in data.")
-                return
-        else:  
-            reader.sort(key=lambda row: row[column_index].lower())
-
-  
-        self.ui.StudentTable.setRowCount(0)
-        for row_data in reader:
-            row_index = self.ui.StudentTable.rowCount()
-            self.ui.StudentTable.insertRow(row_index)
-            for col_index, data in enumerate(row_data):
-                self.ui.StudentTable.setItem(row_index, col_index, QTableWidgetItem(data))
-
-    # Sorting College
-    def sort_college(self):
-        column_index = self.ui.Sortbox.currentIndex()
-        
-        if column_index == 0: # When Select is pressed, it will revert back to its original order
-            self.load_colleges()
-            return
-
-    
-        sort_mapping = {
-            1: 0,  # College Code
-            2: 1,  # College Name
-            
-        }
-
-        if column_index not in sort_mapping:
-            QMessageBox.warning(self, "Sort Error", "Please select a sorting option.")
-            return
-
-        column_index = sort_mapping[column_index]  # Get actual column index
-
-    
-        with open(COLLEGE_CSV, "r", newline="") as file:
-            reader = list(csv.reader(file))  
-
-        reader.sort(key=lambda row: row[column_index].lower())
-
-        self.ui.COLLEGETABLE.setRowCount(0)
-        for row_data in reader:
-            row_index = self.ui.COLLEGETABLE.rowCount()
-            self.ui.COLLEGETABLE.insertRow(row_index)
-            for col_index, data in enumerate(row_data):
-                self.ui.COLLEGETABLE.setItem(row_index, col_index, QTableWidgetItem(data))
     
     # Sorting Program
-    def sort_program(self):
-        column_index = self.ui.Sortbybox_2.currentIndex()
-        
-        if column_index == 0: # When Select is pressed, it will revert back to its original order
-            self.load_programs()
-            return
-        
-        sort_mapping = {
-            1: 0,  # Program Code
-            2: 1,  # Program Name
-            3: 2   # College Code
-        }
+    def SortProgram(self):
+        try:
+            indexcolumn = self.ui.Sortbybox_2.currentIndex()
 
-        if column_index not in sort_mapping:
-            QMessageBox.warning(self, "Sort Error", "Please select a sorting option.")
-            return
+            # If "SELECT" is chosen, it reverts back to its original order(The order when it was added)
+            if indexcolumn == 0:  
+                self.LoadProgram()  
+                return
 
-        column_index = sort_mapping[column_index]  # Get actual column index
+            ProgramSort = {
+                1: 0,  # Program Code
+                2: 1,  # Program Name
+                3: 2   # College Code
+            }
 
-    
-        with open(PROGRAM_CSV, "r", newline="") as file:
-            reader = list(csv.reader(file))  
+            if indexcolumn not in ProgramSort:
+                QMessageBox.warning(self, "Sort Error", "Please select a valid sorting option.")
+                return
 
-        reader.sort(key=lambda row: row[column_index].lower())
+            indexcolumn = ProgramSort[indexcolumn]  # Get actual column index for sorting
 
-        self.ui.COLLEGETABLE_2.setRowCount(0)
-        for row_data in reader:
-            row_index = self.ui.COLLEGETABLE_2.rowCount()
-            self.ui.COLLEGETABLE_2.insertRow(row_index)
-            for col_index, data in enumerate(row_data):
-                self.ui.COLLEGETABLE_2.setItem(row_index, col_index, QTableWidgetItem(data))
+            
+            with open(ProgramCSV, "r", newline="") as file:
+                Psort = csv.reader(file)
+                rows = list(Psort)
 
+            if len(rows) <= 1:  # IF only header is available
+                QMessageBox.warning(self, "Sort Error", "No data available for sorting.")
+                return
+
+            # UI AND TABLE PROBLEMS... I USED THIS METHOD TO SORT
+            header, *inputs = rows  
+
+            # Sort data based on the selected column
+            inputs.sort(key=lambda row: row[indexcolumn].lower() if len(row) > indexcolumn else "")
+
+          
+            self.ui.COLLEGETABLE_2.setRowCount(0)
+            for row_data in inputs:
+                row_index = self.ui.COLLEGETABLE_2.rowCount()
+                self.ui.COLLEGETABLE_2.insertRow(row_index)
+                for col_index, cell_data in enumerate(row_data):
+                    self.ui.COLLEGETABLE_2.setItem(row_index, col_index, QTableWidgetItem(cell_data))
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while sorting the Programs: {str(e)}")
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = StudentSystem()
