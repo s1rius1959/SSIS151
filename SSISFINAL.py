@@ -258,6 +258,9 @@ class Ui_MainWindow(object):
         self.SREFRESH = QtWidgets.QPushButton(self.SearchandSort)
         self.SREFRESH.setGeometry(QtCore.QRect(169, 46, 75, 23))
         self.SREFRESH.setObjectName("SREFRESH")
+        self.SLoad = QtWidgets.QPushButton(self.SearchandSort)
+        self.SLoad.setGeometry(QtCore.QRect(410, 16, 61, 23))
+        self.SLoad.setObjectName("SLoad")
         self.AddStudent = QtWidgets.QFrame(self.STUDENT)
         self.AddStudent.setGeometry(QtCore.QRect(891, 203, 391, 311))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -1096,6 +1099,7 @@ class Ui_MainWindow(object):
         self.Sortby.setText(_translate("MainWindow", "Filter:"))
         self.SEARCHbutton.setText(_translate("MainWindow", "SEARCH"))
         self.SREFRESH.setText(_translate("MainWindow", "Refresh"))
+        self.SLoad.setText(_translate("MainWindow", "Load"))
         self.ADDSTUDENT_3.setText(_translate("MainWindow", "Add Student"))
         self.IDno.setText(_translate("MainWindow", "ID No."))
         self.FirstN.setText(_translate("MainWindow", "First Name"))
@@ -1159,13 +1163,3 @@ class Ui_MainWindow(object):
         self.AddProg.setText(_translate("MainWindow", "Add Program"))
         self.CollegeC.setText(_translate("MainWindow", "College Code"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.Program), _translate("MainWindow", "PROGRAM"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
