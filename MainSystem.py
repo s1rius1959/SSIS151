@@ -69,6 +69,9 @@ class StudentSystem(QMainWindow):
         self.ui.CREFRESH.clicked.connect(self.CollegeRefresh)
         self.ui.REFRESH.clicked.connect(self.ProgramRefresh)  
 
+        # Updater
+        self.ui.SLoad.clicked.connect(self.StudentsUpdate)
+
        #Combo Boxes 
     def combo_boxes(self):
         self.ui.Yrlvlbox.clear()
@@ -161,6 +164,49 @@ class StudentSystem(QMainWindow):
         QMessageBox.information(self, "Success", "Student added successfully.")
         self.ClearStudentInputs()
     
+    def StudentsUpdate(self):
+        try:
+         
+            program_map = {}
+            with open(ProgramCSV, "r", newline="") as file:
+                reader = csv.reader(file)
+                next(reader, None)  # Skip header
+                for row in reader:
+                    if len(row) >= 3:
+                        old_program_code = row[0].strip()
+                        program_map[old_program_code] = old_program_code  
+
+            updated_students = []
+            with open(StudentCSV, "r", newline="") as file:
+                reader = csv.reader(file)
+                header = next(reader, None) 
+                for row in reader:
+                    if len(row) >= 6:
+                        student_program_code = row[5].strip()
+                        if student_program_code in program_map:
+                            row[5] = program_map[student_program_code]  
+                    updated_students.append(row)
+
+            
+            with open(StudentCSV, "w", newline="") as file:
+                writer = csv.writer(file)
+                if header:
+                    writer.writerow(header)
+                writer.writerows(updated_students)
+
+           
+            for row_index in range(self.ui.StudentTable.rowCount()):
+                student_program_code = self.ui.StudentTable.item(row_index, 5).text().strip()
+                if student_program_code in program_map:
+                    self.ui.StudentTable.setItem(row_index, 5, QTableWidgetItem(program_map[student_program_code])) 
+
+            QMessageBox.information(self, "Success", "Student table updated with edited Program Codes.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while updating student programs: {e}")
+
+
+    
     def LoadStudent(self):
         if not os.path.exists(StudentCSV):
             with open(StudentCSV, "w", newline="") as file:
@@ -217,6 +263,15 @@ class StudentSystem(QMainWindow):
             self.ui.StudentTable.setSortingEnabled(False)
 
             student_data = [self.ui.StudentTable.item(selected_row, col).text() for col in range(self.ui.StudentTable.columnCount())]
+
+            reply = QMessageBox.question(
+                self, "Confirm Deletion",
+                f"Are you sure you want to delete student?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+
+            if reply == QMessageBox.No:
+                return
             
             with open(StudentCSV, "r", newline="") as file:
                 rows = list(csv.reader(file))
@@ -352,7 +407,6 @@ class StudentSystem(QMainWindow):
         self.ui.Searchbybox.clear()
         self.ui.Sortbybox.setCurrentIndex(0)  
 
-    # Reset sorting order (column & direction)
         self.ui.StudentTable.horizontalHeader().setSortIndicator(-1, 0)  
 
     # Reload student data in original CSV order
@@ -365,27 +419,35 @@ class StudentSystem(QMainWindow):
     #COLLEGE  
     def AddCollege(self):
         try: 
-            collegecode = self.ui.AddCCodeBox.text().strip()
+            collegecode = self.ui.AddCCodeBox.text().strip().upper()
             collegename = self.ui.CollegeNbox.text().strip()
 
             # Validating Add College Inputs
             if not collegecode or not collegename:
                 QMessageBox.warning(self, "Input Error", "All fields are required!")
                 return
-            if not all(c.isalpha() for c in collegecode): 
+            if not collegecode.isalpha(): 
                 QMessageBox.warning(self, "Input Error", "Invalid College Code! Only letters are allowed.")
                 return
             if not all(c.isalpha() or c.isspace() for c in collegename): 
                 QMessageBox.warning(self, "Input Error", "Invalid College Name! Only letters and spaces are allowed.")
                 return
-        
+
+            # Check if the college already exists
+            with open(CollegeCSV, "r", newline="") as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if row and row[0].strip().upper() == collegecode:
+                        QMessageBox.warning(self, "Duplicate Entry", "College Code already exists!")
+                        return
+
             sorting_enabled = self.ui.COLLEGETABLE.isSortingEnabled()
             sort_column = self.ui.COLLEGETABLE.horizontalHeader().sortIndicatorSection()
             sort_order = self.ui.COLLEGETABLE.horizontalHeader().sortIndicatorOrder()
 
             self.ui.COLLEGETABLE.setSortingEnabled(False)
-        
-        
+
+            # Add new college to the CSV file
             with open(CollegeCSV, "a", newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow([collegecode, collegename])
@@ -393,9 +455,11 @@ class StudentSystem(QMainWindow):
             # Add new row to the table directly (without reloading all data)
             row_index = self.ui.COLLEGETABLE.rowCount()
             self.ui.COLLEGETABLE.insertRow(row_index)
-            college_data = [collegecode, collegename]
-            for col_index, data in enumerate(college_data):
-                self.ui.COLLEGETABLE.setItem(row_index, col_index, QTableWidgetItem(data))
+            self.ui.COLLEGETABLE.setItem(row_index, 0, QTableWidgetItem(collegecode))
+            self.ui.COLLEGETABLE.setItem(row_index, 1, QTableWidgetItem(collegename))
+
+            self.College_Code.add(collegecode)  # Update college code set
+            self.combo_boxes()
 
             # Restore sorting
             self.ui.COLLEGETABLE.setSortingEnabled(sorting_enabled)
@@ -404,8 +468,10 @@ class StudentSystem(QMainWindow):
 
             QMessageBox.information(self, "Success", "College added successfully!")
             self.ClearCollegeInputs()
+
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while adding the College: {e}")
+
 
     # Clearing Add College Inputs
     def ClearCollegeInputs(self):
@@ -450,6 +516,15 @@ class StudentSystem(QMainWindow):
 
             # Get College Code from the selected row
             college_code = self.ui.COLLEGETABLE.item(selected_row, 0).text()
+
+            reply = QMessageBox.question(
+                self, "Confirm Deletion",
+                f"Are you sure you want to delete college?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+
+            if reply == QMessageBox.No:
+                return
 
             # Read all colleges and remove the selected one
             with open(CollegeCSV, "r", newline="") as file:
@@ -646,6 +721,17 @@ class StudentSystem(QMainWindow):
             if not all(c.isalpha() or c.isspace() for c in programname): 
                 QMessageBox.warning(self, "Input Error", "Invalid Program Name! Only letters and spaces are allowed.")
                 return
+            if collegecode not in self.College_Code:
+                QMessageBox.warning(self, "Input Error", "The selected College Code does not exist.")
+                return  
+            
+             # Check if the program already exists
+            with open(ProgramCSV, "r", newline="") as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if row and row[0].strip() == programcode:
+                        QMessageBox.warning(self, "Duplicate Entry", "Program Code already exists!")
+                        return
         
             sorting_enabled = self.ui.COLLEGETABLE_2.isSortingEnabled()
             sort_column = self.ui.COLLEGETABLE_2.horizontalHeader().sortIndicatorSection() 
@@ -661,9 +747,16 @@ class StudentSystem(QMainWindow):
             # Add new row to the table directly (without reloading all data)
             row_index = self.ui.COLLEGETABLE_2.rowCount()
             self.ui.COLLEGETABLE_2.insertRow(row_index)
-            program_data = [program_code, program_name, college_code]
+            program_data = [programcode, programname, collegecode]
             for col_index, data in enumerate(program_data):
                 self.ui.COLLEGETABLE_2.setItem(row_index, col_index, QTableWidgetItem(data))
+
+
+            self.Program_Code.add(programcode)  # Update program code set
+            self.ProgramCollegeMap[programcode] = collegecode
+            self.combo_boxes()
+
+            
 
             # Restore sorting
             self.ui.COLLEGETABLE_2.setSortingEnabled(sorting_enabled)
@@ -703,7 +796,7 @@ class StudentSystem(QMainWindow):
     def ClearProgramInputs(self):
         self.ui.PrCodeBox.clear()
         self.ui.ProgNbox.clear()
-        self.ui.ccComboBox.clear()
+        self.ui.ccComboBox.setCurrentIndex(0)
     
     # Delete Program
     def DeleteProgram(self):
@@ -721,6 +814,15 @@ class StudentSystem(QMainWindow):
 
             # Get Program Code from the selected row
             program_code = self.ui.COLLEGETABLE_2.item(selected_row, 0).text()
+
+            reply = QMessageBox.question(
+                self, "Confirm Deletion",
+                f"Are you sure you want to delete student?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+
+            if reply == QMessageBox.No:
+                return
 
             # Read all programs and remove the selected one
             with open(ProgramCSV, "r", newline="") as file:
