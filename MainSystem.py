@@ -169,7 +169,7 @@ class StudentSystem(QMainWindow):
         try:
             original_program_path = os.path.join(BASE_DIR, "programs_original.csv")
 
-            # Step 1: Load OLD Programs from Original CSV
+            # Step 1: Load OLD Programs from programs_original.csv
             old_programs = {}
             if os.path.exists(original_program_path):
                 with open(original_program_path, "r", newline="") as file:
