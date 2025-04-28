@@ -45,6 +45,7 @@ class StudentSystem(QMainWindow):
         self.LoadStudent()
         self.LoadCollege()
         self.LoadProgram()
+        self.SaveOriginalPrograms()
         self.combo_boxes()
 
         # Deleting
@@ -166,48 +167,84 @@ class StudentSystem(QMainWindow):
     
     def StudentsUpdate(self):
         try:
-         
-            program_map = {}
-            with open(ProgramCSV, "r", newline="") as file:
-                reader = csv.reader(file)
-                next(reader, None)  # Skip header
-                for row in reader:
-                    if len(row) >= 3:
-                        old_program_code = row[0].strip()
-                        program_map[old_program_code] = old_program_code  
+            original_program_path = os.path.join(BASE_DIR, "programs_original.csv")
 
-            updated_students = []
-            with open(StudentCSV, "r", newline="") as file:
-                reader = csv.reader(file)
-                header = next(reader, None) 
-                for row in reader:
-                    if len(row) >= 6:
-                        student_program_code = row[5].strip()
-                        if student_program_code in program_map:
-                            row[5] = program_map[student_program_code]  
-                    updated_students.append(row)
+            # Step 1: Load OLD Programs from Original CSV
+            old_programs = {}
+            if os.path.exists(original_program_path):
+                with open(original_program_path, "r", newline="") as file:
+                    reader = csv.reader(file)
+                    old_program_header = next(reader, None)
+                    for row in reader:
+                        if row and len(row) >= 3:
+                            old_program_code = row[0].strip()
+                            old_programs[old_program_code] = (row[1].strip(), row[2].strip())  # (Program Name, College Code)
 
-            
+            # Step 2: Load NEW Programs from current Program Table
+            new_programs = {}
+            for row in range(self.ui.COLLEGETABLE_2.rowCount()):
+                program_code = self.ui.COLLEGETABLE_2.item(row, 0).text().strip()
+                program_name = self.ui.COLLEGETABLE_2.item(row, 1).text().strip()
+                college_code = self.ui.COLLEGETABLE_2.item(row, 2).text().strip()
+                if program_code:
+                    new_programs[program_code] = (program_name, college_code)
+
+            # Step 3: Build mapping OLD ➔ NEW
+            program_code_mapping = {}
+            for old_code, (old_name, old_college) in old_programs.items():
+                for new_code, (new_name, new_college) in new_programs.items():
+                    if old_name == new_name and old_college == new_college:
+                        program_code_mapping[old_code] = new_code
+                        break
+                else:
+                    program_code_mapping[old_code] = "NONE"
+
+            # Step 4: Load students
+            students = []
+            if os.path.exists(StudentCSV):
+                with open(StudentCSV, "r", newline="") as file:
+                    reader = csv.reader(file)
+                    student_header = next(reader, None)
+                    for row in reader:
+                        if row and len(row) >= 6:
+                            students.append(row)
+
+            # Step 5: Update students
+            for student in students:
+                old_program_code = student[5].strip()
+                new_program_code = program_code_mapping.get(old_program_code, "NONE")
+                student[5] = new_program_code
+
+            # Step 6: Save students
             with open(StudentCSV, "w", newline="") as file:
                 writer = csv.writer(file)
-                if header:
-                    writer.writerow(header)
-                writer.writerows(updated_students)
+                if student_header:
+                    writer.writerow(student_header)
+                writer.writerows(students)
 
-           
-            for row_index in range(self.ui.StudentTable.rowCount()):
-                student_program_code = self.ui.StudentTable.item(row_index, 5).text().strip()
-                if student_program_code in program_map:
-                    self.ui.StudentTable.setItem(row_index, 5, QTableWidgetItem(program_map[student_program_code])) 
+            # After successful update, re-save a fresh backup of programs
+            self.SaveOriginalPrograms()
 
-            QMessageBox.information(self, "Success", "Student table updated with edited Program Codes.")
+            self.LoadStudent()
+            QMessageBox.information(self, "Success", "Student Program Codes have been updated based on Program changes.")
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while updating student programs: {e}")
 
 
+    def SaveOriginalPrograms(self):
+        try:
+            original_path = os.path.join(BASE_DIR, "programs_original.csv")
+            with open(ProgramCSV, "r", newline="") as source, open(original_path, "w", newline="") as dest:
+                dest.write(source.read())
+        except Exception as e:
+            print(f"Error saving original programs: {e}")
+
+
+
     
     def LoadStudent(self):
+        
         if not os.path.exists(StudentCSV):
             with open(StudentCSV, "w", newline="") as file:
                 writer = csv.writer(file)
@@ -401,6 +438,7 @@ class StudentSystem(QMainWindow):
                         self.ui.StudentTable.setItem(row_index, col_index, QTableWidgetItem(data))
     
     def StudentRefresh(self):
+        
         self.ui.StudentTable.setSortingEnabled(False)  
 
     # Reset search box and filter combo box
