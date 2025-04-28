@@ -14,7 +14,6 @@ CollegeCSV = os.path.join(BASE_DIR, "colleges.csv")
 ProgramCSV = os.path.join(BASE_DIR, "programs.csv")
 
 
-
 class StudentSystem(QMainWindow):
     def __init__(self):
         super().__init__()
