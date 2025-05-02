@@ -621,49 +621,80 @@ class StudentSystem(QMainWindow):
             QMessageBox.warning(self, "Selection Error", "Please select a College to edit.")
             return
 
-        # original college data
-        college_code = self.ui.COLLEGETABLE.item(selected_row, 0).text()
-        college_name = self.ui.COLLEGETABLE.item(selected_row, 1).text()
+        old_code = self.ui.COLLEGETABLE.item(selected_row, 0).text()
+        old_name = self.ui.COLLEGETABLE.item(selected_row, 1).text()
 
-        # For Inputs
-        self.ui.AddCCodeBox.setText(college_code)
-        self.ui.CollegeNbox.setText(college_name)
+        # Pre-fill input fields
+        self.ui.AddCCodeBox.setText(old_code)
+        self.ui.CollegeNbox.setText(old_name)
 
-        # For Header Glitch and Removing the Selected College
-        try:
-        
-            with open(CollegeCSV, "r", newline="") as file:
-                reader = csv.reader(file)
-                rows = list(reader)
+        # Ask user to confirm they are going to update
+        reply = QMessageBox.question(
+            self, "Edit College",
+            "After updating the fields above, click OK to save changes.",
+            QMessageBox.Ok | QMessageBox.Cancel
+        )
+        if reply == QMessageBox.Cancel:
+            return
 
-            # For Header Glitch and Removing the Selected College
-            if rows and rows[0] == ["College Code", "College Name"]:
-                header = rows[0]  
-                data_rows = rows[1:]  
-            else:
-                header = ["College Code", "College Name"]
-                data_rows = rows
+        def apply_college_update():
+            new_code = self.ui.AddCCodeBox.text().strip().upper()
+            new_name = self.ui.CollegeNbox.text().strip()
 
-            # For Removing
-            new_rows = [row for row in data_rows if row and row[0] != college_code]
+            if not new_code or not new_name:
+                QMessageBox.warning(self, "Input Error", "All fields must be filled.")
+                return
 
-            # keep the header only if there are remaining rows
-            with open(CollegeCSV, "w", newline="") as file:
-                writer = csv.writer(file)
-                if new_rows:  
-                    writer.writerow(header)  
-                    writer.writerows(new_rows)
-        
-            # Remove a row from the Table
-            self.ui.COLLEGETABLE.removeRow(selected_row)
+            # Update colleges.csv
+            updated_colleges = []
+            updated = False
+            if os.path.exists(CollegeCSV):
+                with open(CollegeCSV, "r", newline="") as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if row and row[0] == old_code:
+                            updated_colleges.append([new_code, new_name])
+                            updated = True
+                        elif row and row[0] != "College Code":
+                            updated_colleges.append(row)
 
-            # For updating
+            if not updated:
+                QMessageBox.warning(self, "Update Error", "Original college not found.")
+                return
+
+            with open(CollegeCSV, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["College Code", "College Name"])
+                writer.writerows(updated_colleges)
+
+            # Update programs.csv (if college code changed)
+            if new_code != old_code and os.path.exists(ProgramCSV):
+                updated_programs = []
+                with open(ProgramCSV, "r", newline="") as f:
+                    reader = csv.reader(f)
+                    header = next(reader, None)
+                    for row in reader:
+                        if row and row[2] == old_code:
+                            row[2] = new_code
+                        updated_programs.append(row)
+
+                with open(ProgramCSV, "w", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(header or ["Program Code", "Program Name", "College Code"])
+                    writer.writerows(updated_programs)
+
             self.LoadCollege()
+            self.LoadProgram()
+            self.combo_boxes()
+            QMessageBox.information(self, "Success", "College and related programs updated successfully.")
 
-            QMessageBox.information(self, "Editing", "College removed. You can now update its information and add it again.")
+            # Restore Add button behavior
+            self.ui.AddCo.clicked.disconnect()
+            self.ui.AddCo.clicked.connect(self.AddCollege)
 
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred while editing the college: {e}")
+        # Temporarily override AddCo to finalize the edit
+        self.ui.AddCo.clicked.disconnect()
+        self.ui.AddCo.clicked.connect(apply_college_update)
 
 
     # Search College
@@ -904,51 +935,87 @@ class StudentSystem(QMainWindow):
             QMessageBox.warning(self, "Selection Error", "Please select a Program to edit.")
             return
 
-        # original program data
-        program_code = self.ui.COLLEGETABLE_2.item(selected_row, 0).text()
-        program_name = self.ui.COLLEGETABLE_2.item(selected_row, 1).text()
-        college_code = self.ui.COLLEGETABLE_2.item(selected_row, 2).text()
+        old_code = self.ui.COLLEGETABLE_2.item(selected_row, 0).text()
+        old_name = self.ui.COLLEGETABLE_2.item(selected_row, 1).text()
+        old_college = self.ui.COLLEGETABLE_2.item(selected_row, 2).text()
 
-        # For Inputs
-        self.ui.PrCodeBox.setText(program_code)
-        self.ui.ProgNbox.setText(program_name)
-        self.ui.ccComboBox.setCurrentText(college_code)
+        # Pre-fill input boxes
+        self.ui.PrCodeBox.setText(old_code)
+        self.ui.ProgNbox.setText(old_name)
+        self.ui.ccComboBox.setCurrentText(old_college)
 
-        # For Header Glitch and Removing the Selected Program
-        try:
-          
-            with open(ProgramCSV, "r", newline="") as file:
-                reader = csv.reader(file)
-                rows = list(reader)
+        # Ask user to confirm they are going to update
+        reply = QMessageBox.question(
+            self, "Edit Program",
+            "After updating the fields above, click OK to save changes.",
+            QMessageBox.Ok | QMessageBox.Cancel
+        )
+        if reply == QMessageBox.Cancel:
+            return
 
-            # Header Glitch
-            if rows and rows[0] == ["Program Code", "Program Name", "College Code"]:
-                header = rows[0]  
-                data_rows = rows[1:] 
-            else:
-                header = ["Program Code", "Program Name", "College Code"]
-                data_rows = rows
+        def apply_program_update():
+            new_code = self.ui.PrCodeBox.text().strip()
+            new_name = self.ui.ProgNbox.text().strip()
+            new_college = self.ui.ccComboBox.currentText().strip()
 
-            # For Removing
-            new_rows = [row for row in data_rows if row and row[0] != program_code]
+            if not new_code or not new_name or new_college == "Please Select":
+                QMessageBox.warning(self, "Input Error", "All fields must be filled.")
+                return
 
-            # keep the header only if there are remaining rows
-            with open(ProgramCSV, "w", newline="") as file:
-                writer = csv.writer(file)
-                if new_rows:  
-                    writer.writerow(header)  
-                    writer.writerows(new_rows)
-        
-            # Remove a row from the Table
-            self.ui.COLLEGETABLE_2.removeRow(selected_row)
+            # Read existing program data
+            updated_programs = []
+            updated = False
+            if os.path.exists(ProgramCSV):
+                with open(ProgramCSV, "r", newline="") as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        if row and row[0] == old_code:
+                            updated_programs.append([new_code, new_name, new_college])
+                            updated = True
+                        elif row and row[0] != "Program Code":
+                            updated_programs.append(row)
 
-            # For updating
+            if not updated:
+                QMessageBox.warning(self, "Update Error", "Original program not found.")
+                return
+
+            # Save updated programs
+            with open(ProgramCSV, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Program Code", "Program Name", "College Code"])
+                writer.writerows(updated_programs)
+
+            # Update any students with the old program code
+            if new_code != old_code and os.path.exists(StudentCSV):
+                students = []
+                with open(StudentCSV, "r", newline="") as f:
+                    reader = csv.reader(f)
+                    students = list(reader)
+
+                with open(StudentCSV, "w", newline="") as f:
+                    writer = csv.writer(f)
+                    for row in students:
+                        if row and row[0] == "ID":
+                            writer.writerow(row)
+                        elif row and row[5] == old_code:
+                            row[5] = new_code
+                            writer.writerow(row)
+                        else:
+                            writer.writerow(row)
+
+            self.SaveOriginalPrograms()
             self.LoadProgram()
+            self.LoadStudent()
+            QMessageBox.information(self, "Success", "Program and related students updated successfully.")
 
-            QMessageBox.information(self, "Editing", "Program removed. You can now update its information and add it again.")
+            # Reset button behavior
+            self.ui.AddProg.clicked.disconnect()
+            self.ui.AddProg.clicked.connect(self.AddProgram)
 
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred while editing the program: {e}")
+        # Temporarily override Add button to finish the edit
+        self.ui.AddProg.clicked.disconnect()
+        self.ui.AddProg.clicked.connect(apply_program_update)
+
     
     # Search Program
     def SearchProgram(self):
