@@ -572,29 +572,16 @@ class StudentSystem(QMainWindow):
                 for row in rows:
                     if row and row[0] != college_code:  # Keep all except the deleted college
                         writer.writerow(row)
-
-            # Remove programs associated with the deleted college
-            programs_to_remove = set()
+        
+            # "NONE" for students in the deleted programs
             with open(ProgramCSV, "r", newline="") as file:
                 rows = list(csv.reader(file))
 
             with open(ProgramCSV, "w", newline="") as file:
                 writer = csv.writer(file)
                 for row in rows:
-                    if row[2] != college_code:
-                        writer.writerow(row)
-                    else:
-                        programs_to_remove.add(row[0])  
-
-            # "NONE" for students in the deleted programs
-            with open(StudentCSV, "r", newline="") as file:
-                rows = list(csv.reader(file))
-
-            with open(StudentCSV, "w", newline="") as file:
-                writer = csv.writer(file)
-                for row in rows:
-                    if row[5] in programs_to_remove: 
-                        row[5] = "NONE"  # Set program to NONE
+                    if row and row[2] == college_code:
+                        row[2] = "NONE"  # Set college code to NONE in programs
                     writer.writerow(row)
 
             # Reload tables
@@ -607,7 +594,7 @@ class StudentSystem(QMainWindow):
             if sorting_enabled:
                 self.ui.COLLEGETABLE.sortItems(sort_column, sort_order)
 
-            QMessageBox.information(self, "Success", "College and its associated programs have been deleted.")
+            QMessageBox.information(self, "Success", "College has been deleted and its associated programs have been set to NONE.")
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while deleting the college: {e}")
